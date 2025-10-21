@@ -10,32 +10,61 @@ body {
     --dark-tile: #614725;
     --tile-size: min(10vh, 10vw, 5em);
 
-    display: grid;
-    grid-template-columns: repeat(8, var(--tile-size));
-    grid-template-rows: repeat(8, var(--tile-size));
-
-    .tile {
-        width: var(--tile-size);
-        height: var(--tile-size);
-        background-color: var(--dark-tile);
-        aspect-ratio: 1;
+    .board {
         display: grid;
-        place-items: center;
+        grid-template-columns: repeat(8, var(--tile-size));
+        grid-template-rows: repeat(8, var(--tile-size));
+    
+        .tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            background-color: var(--dark-tile);
+            aspect-ratio: 1;
+            display: grid;
+            place-items: center;
+            user-select: none;
+    
+            &.light {
+                background-color: var(--light-tile);
+            }
+        }
+        
+        .piece {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            margin: auto;
+            pointer-events: none;
+    
+            &.black {
+                filter: invert();
+            }
 
-        &.light {
-            background-color: var(--light-tile);
+            &.dragging {
+                display: none;
+            }
         }
     }
-    
-    .piece {
-        width: 100%;
-        height: 100%;
+
+    #dragged {
+        width: var(--tile-size);
+        height: var(--tile-size);
         aspect-ratio: 1;
         object-fit: contain;
         margin: auto;
+        position: fixed;
+        left: var(--x);
+        top: var(--y);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
 
         &.black {
             filter: invert();
+        }
+
+        &:not(.show) {
+            display: none;
         }
     }
 }
