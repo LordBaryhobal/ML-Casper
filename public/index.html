@@ -9,10 +9,32 @@
     <script src="index.js"></script>
 </head>
 <body>
-    <h1>ELO Estimator</h1>
-    <div id="chessboard">
-        <div class="board"></div>
-        <img id="dragged"/>
-    </div>
+    <header>
+        <h1>ELO Estimator</h1>
+    </header>
+    <main>
+        <div id="chessboard">
+            <div class="board"></div>
+            <img id="dragged"/>
+        </div>
+    </main>
+    <aside id="sidebar">
+        <div id="config">
+            <h2>Configuration</h2>
+
+            <div>
+                <label for="play-as">Play as</label>
+                <select id="play-as">
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                    <option value="random">Random</option>
+                </select>
+            </div>
+            <button id="start">Start Game</button>
+        </div>
+        <div id="history">
+            <h2>History</h2>
+        </div>
+    </aside>
 </body>
 </html>
