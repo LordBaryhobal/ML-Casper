@@ -8,17 +8,34 @@ body {
 #chessboard {
     --light-tile: #f1de9d;
     --dark-tile: #614725;
-    border-collapse: collapse;
     --tile-size: min(10vh, 10vw, 5em);
 
-    td {
+    display: grid;
+    grid-template-columns: repeat(8, var(--tile-size));
+    grid-template-rows: repeat(8, var(--tile-size));
+
+    .tile {
         width: var(--tile-size);
         height: var(--tile-size);
         background-color: var(--dark-tile);
         aspect-ratio: 1;
-    }
+        display: grid;
+        place-items: center;
 
-    tr:nth-child(odd) td:nth-child(odd), tr:nth-child(even) td:nth-child(even) {
-        background-color: var(--light-tile);
+        &.light {
+            background-color: var(--light-tile);
+        }
+    }
+    
+    .piece {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: 1;
+        object-fit: contain;
+        margin: auto;
+
+        &.black {
+            filter: invert();
+        }
     }
 }
