@@ -54,6 +54,8 @@ class Chessboard {
         this.halfMoves = 0
         this.moves = 1
         this.enPassant = null
+        this.promotionPopup = new Popup(document.getElementById("promotion-popup"))
+        this.promotionMove = null
         this.init()
     }
 
@@ -73,6 +75,11 @@ class Chessboard {
         }
         window.addEventListener("mouseup", e => this.onDropPiece(e))
         window.addEventListener("mousemove", e => this.updateDragPiece(e))
+
+        Array.from(this.promotionPopup.node.querySelectorAll("button")).map(btn => {
+            btn.addEventListener("click", () => this.confirmPromotion(btn))
+        })
+
         this.loadFEN(Chessboard.EMPTY_STATE)
     }
 
@@ -183,18 +190,26 @@ class Chessboard {
         this.tryMove(start, [x, y])
     }
 
-    tryMove(from, to) {
+    tryMove(from, to, promotion=null) {
         const [x1, y1] = from
         const [x2, y2] = to
 
         const pos1 = this.toAlgebraic(from)
-        const pos2 = this.toAlgebraic(to)
+        const pos2 = this.toAlgebraic(to, promotion)
 
         if (pos1 === pos2) {
             return
         }
 
         const fen = this.getFEN()
+        
+        if (this.state[y1][x1].toLowerCase() === Piece.Pawn && !promotion) {
+            const flipped = this.currentPlayer !== this.pov
+            if (y2 === (flipped ? 7 : 0)) {
+                this.promptPromotion(from, to)
+                return
+            }
+        }
 
         // Pre-move
         this.movePiece(x1, y1, x2, y2)
@@ -307,7 +322,7 @@ class Chessboard {
         return this.state.map(r => r.toReversed()).toReversed()
     }
 
-    toAlgebraic(pos) {
+    toAlgebraic(pos, promotion=null) {
         let [x, y] = pos
         if (this.pov === "black") {
             x = 7 - x
@@ -315,7 +330,7 @@ class Chessboard {
         }
         let rank = 8 - y
         let file = Chessboard.FILES.at(x)
-        return file + rank
+        return file + rank + (promotion ?? "")
     }
 
     fromAlgebraic(pos) {
@@ -326,6 +341,20 @@ class Chessboard {
             y = 7 - y
         }
         return [x, y]
+    }
+
+    promptPromotion(from, to) {
+        this.promotionMove = [from, to]
+        this.promotionPopup.show()
+    }
+
+    confirmPromotion(btn) {
+        if (this.promotionMove) {
+            const [from, to] = this.promotionMove
+            this.promotionMove = null
+            this.tryMove(from, to, btn.dataset.piece)
+        }
+        this.promotionPopup.hide()
     }
 }
 
@@ -355,7 +384,8 @@ class Game {
             playAs = Math.random() < 0.5 ? "white" : "black"
         }
         this.board.setPOV(playAs)
-        this.board.loadFEN(Chessboard.DEFAULT_STATE)
+        //this.board.loadFEN(Chessboard.DEFAULT_STATE)
+        this.board.loadFEN("3qkbnr/1P1ppppp/8/8/8/2P1P3/P4PPP/RNB1KBNR w KQk - 0 1")
     }
 }
 

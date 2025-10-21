@@ -14,3 +14,20 @@ async function apiPost(path, body) {
 
     return await res.json()
 }
+
+class Popup {
+    constructor(node) {
+        this.node = node
+        this.visible = false
+    }
+
+    show() {
+        this.visible = true
+        this.node.classList.add("show")
+    }
+
+    hide() {
+        this.visible = false
+        this.node.classList.remove("show")
+    }
+}

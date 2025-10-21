@@ -103,3 +103,15 @@ aside {
     gap: 1em;
 
 }
+
+#promotion-popup {
+    .choices {
+        display: flex;
+        gap: 0.8em;
+
+        .choice {
+            display: flex;
+            flex-direction: column;
+        }
+    }
+}

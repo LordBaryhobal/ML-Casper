@@ -38,3 +38,24 @@ button {
         background-color: var(--button-pressed-bg);
     }
 }
+
+.popup {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    background-color: rgba(44, 44, 44, 0.288);
+    backdrop-filter: blur(3px);
+
+    &:not(.show) {
+        display: none;
+    }
+
+    .container {
+        padding: 2em;
+        border-radius: 0.4em;
+        background-color: #241916;
+        border: solid 1px #2e201c;
+    }
+}
