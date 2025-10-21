@@ -38,6 +38,7 @@ aside {
             display: grid;
             place-items: center;
             user-select: none;
+            min-width: 2em;
     
             &.light {
                 background-color: var(--light-tile);
