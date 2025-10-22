@@ -177,6 +177,7 @@ dependencies = [
     { name = "ipykernel" },
     { name = "polars" },
     { name = "python-chess" },
+    { name = "stockfish" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -187,6 +188,7 @@ requires-dist = [
     { name = "ipykernel", specifier = ">=7.0.1" },
     { name = "polars", specifier = ">=1.34.0" },
     { name = "python-chess", specifier = ">=1.999" },
+    { name = "stockfish", specifier = ">=3.28.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.38.0" },
 ]
 
@@ -994,6 +996,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a7/a5/d6f429d43394057b67a6b5bbe6eae2f77a6bf7459d961fdb224bf206eee6/starlette-0.48.0.tar.gz", hash = "sha256:7e8cee469a8ab2352911528110ce9088fdc6a37d9876926e73da7ce4aa4c7a46", size = 2652949, upload-time = "2025-09-13T08:41:05.699Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/72/2db2f49247d0a18b4f1bb9a5a39a0162869acf235f3a96418363947b3d46/starlette-0.48.0-py3-none-any.whl", hash = "sha256:0764ca97b097582558ecb498132ed0c7d942f233f365b86ba37770e026510659", size = 73736, upload-time = "2025-09-13T08:41:03.869Z" },
+]
+
+[[package]]
+name = "stockfish"
+version = "3.28.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/bd/b06883b957530867179da3672fa3d8b87a08a1e3c11ca9737d94b60689d2/stockfish-3.28.0.tar.gz", hash = "sha256:8764127c00434aa85b7fca1c064800e7ea907bb3626ccd4b583f0e911b014070", size = 16264, upload-time = "2022-07-05T04:38:28.217Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/b2/b3a204dd7754685fef5e62bf19b82d2572b321df619775502326cf7d383e/stockfish-3.28.0-py3-none-any.whl", hash = "sha256:e432e57112448fe1271dff402db3a4747bf00d1721815ce0a36cfa26582cf360", size = 13907, upload-time = "2022-07-05T04:38:25.91Z" },
 ]
 
 [[package]]
