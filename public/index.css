@@ -105,6 +105,13 @@ aside {
 }
 
 #promotion-popup {
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4em;
+        align-items: center;
+    }
+
     .choices {
         display: flex;
         gap: 0.8em;
@@ -113,5 +120,26 @@ aside {
             display: flex;
             flex-direction: column;
         }
+    }
+}
+
+#game-over-popup {
+    .container, .outcome {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .container {
+        gap: 0.8em;
+    }
+
+    .termination {
+        font-size: 120%;
+        font-weight: bold;
+    }
+
+    .result {
+        font-weight: bold;
     }
 }

@@ -23,14 +23,23 @@ function make2DArray(height, width, value=0) {
     return arr
 }
 
-class MoveEvent {
-    constructor(from, to, piece1, piece2) {
-        this.from = from
-        this.to = to
-        this.piece1 = piece1
-        this.piece2 = piece2
+class ChessEvent {}
+
+class GameOverEvent extends ChessEvent {
+    type = "gameOver"
+
+    constructor(outcome) {
+        super()
+        this.outcome = outcome
     }
 }
+
+/**
+ * @typedef {object} GameOutcome
+ * @property {string} termination
+ * @property {"1-0" | "0-1" | "1/2-1/2"} result
+ * @property {"white" | "black"} winner
+ */
 
 
 class Chessboard {
@@ -56,7 +65,27 @@ class Chessboard {
         this.enPassant = null
         this.promotionPopup = new Popup(document.getElementById("promotion-popup"))
         this.promotionMove = null
+        this.listeners = {}
         this.init()
+    }
+
+    /**
+     * @param {string} event 
+     * @param {ChessListener} listener 
+     */
+    addListener(event, listener) {
+        if (this.listeners[event] === undefined) {
+            this.listeners[event] = []
+        }
+        this.listeners[event].push(listener)
+    }
+
+    /**
+     * @param {string} event 
+     */
+    emit(event) {
+        const listeners = this.listeners[event.type]
+        listeners.map(l => l(event))
     }
 
     init() {
@@ -76,9 +105,10 @@ class Chessboard {
         window.addEventListener("mouseup", e => this.onDropPiece(e))
         window.addEventListener("mousemove", e => this.updateDragPiece(e))
 
-        Array.from(this.promotionPopup.node.querySelectorAll("button")).map(btn => {
+        Array.from(this.promotionPopup.node.querySelectorAll("button.choice")).map(btn => {
             btn.addEventListener("click", () => this.confirmPromotion(btn))
         })
+        this.promotionPopup.node.querySelector("#cancel-promotion-btn").addEventListener("click", () => this.promotionPopup.hide())
 
         this.loadFEN(Chessboard.EMPTY_STATE)
     }
@@ -213,13 +243,15 @@ class Chessboard {
 
         // Pre-move
         this.movePiece(x1, y1, x2, y2)
+        const move = pos1 + pos2
 
         apiPost("/move/", {
             fen: fen,
-            move: pos1 + pos2
+            move: move
         }).then(res => {
             if (res.valid) {
                 this.loadFEN(res.fen)
+                this.onMoved(move, res.outcome)
             } else {
                 // Cancel move
                 this.loadFEN(fen)
@@ -356,7 +388,42 @@ class Chessboard {
         }
         this.promotionPopup.hide()
     }
+
+    onMoved(algebraic, outcome) {
+        if (outcome) {
+            this.onGameOver(outcome)
+            return
+        }
+
+        if (this.currentPlayer !== this.pov) {
+            this.predict()
+        }
+    }
+
+    predict() {
+        apiPost("/predict/", {
+            "fen": this.getFEN(),
+            "elo": 850
+        }).then(res => {
+            if (res.error) {
+                window.alert(res.error)
+                return
+            }
+
+            this.loadFEN(res.fen)
+            this.onMoved(res.move, res.outcome)
+        })
+    }
+
+    onGameOver(outcome) {
+        this.emit(new GameOverEvent(outcome))
+    }
 }
+
+/**
+ * @callback ChessListener
+ * @param {ChessEvent}
+ */
 
 class Player {
     constructor(color) {
@@ -370,12 +437,15 @@ class Game {
     constructor() {
         this.board = new Chessboard(document.getElementById("chessboard"))
         this.startBtn = document.getElementById("start")
+        this.gameOverPopup = new Popup(document.getElementById("game-over-popup"))
 
         this.initListeners()
     }
 
     initListeners() {
         this.startBtn.addEventListener("click", () => this.start())
+        this.board.addListener("gameOver", e => this.onGameOver(e))
+        this.gameOverPopup.node.querySelector("button").addEventListener("click", () => this.gameOverPopup.hide())
     }
 
     start() {
@@ -384,8 +454,41 @@ class Game {
             playAs = Math.random() < 0.5 ? "white" : "black"
         }
         this.board.setPOV(playAs)
-        //this.board.loadFEN(Chessboard.DEFAULT_STATE)
-        this.board.loadFEN("3qkbnr/1P1ppppp/8/8/8/2P1P3/P4PPP/RNB1KBNR w KQk - 0 1")
+        this.board.loadFEN(Chessboard.DEFAULT_STATE)
+    }
+
+    onGameOver(event) {
+        /** @type {GameOutcome} */
+        const outcome = event.outcome
+        const popup = this.gameOverPopup
+
+        let termination
+        let result = outcome.result.split("-").join(" - ")
+        let winner = ""
+
+        switch (outcome.termination) {
+            case "CHECKMATE":
+                termination = "Checkmate"
+                winner = outcome.winner.slice(0, 1).toUpperCase() + outcome.winner.slice(1).toLowerCase() + "s won"
+                break
+            
+            case "STALEMATE":
+                termination = "Stalemate"
+                break
+            
+            case "INSUFFICIENT_MATERIAL":
+                termination = "Insufficient material"
+                break
+        
+            default:
+                termination = "Game Over"
+                break
+        }
+
+        popup.node.querySelector(".termination").innerText = termination
+        popup.node.querySelector(".result").innerText = result
+        popup.node.querySelector(".winner").innerText = winner
+        popup.show()
     }
 }
 
