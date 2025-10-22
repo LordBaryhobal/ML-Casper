@@ -1,19 +1,26 @@
+import os
 import random
 from typing import Optional
 
 import chess
 from chess import Board, IllegalMoveError, Outcome
+from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from stockfish import Stockfish
 
+load_dotenv()
+
+
 app = FastAPI()
 
 router = APIRouter()
 
-stockfish = Stockfish("stockfish/stockfish-ubuntu-x86-64-avx2")
+stockfish_path: str = os.environ["STOCKFISH_PATH"]
+print(f"Stockfish path: {stockfish_path}")
+stockfish = Stockfish(stockfish_path)
 
 
 class MoveCheckData(BaseModel):

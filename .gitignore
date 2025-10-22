@@ -11,3 +11,4 @@ wheels/
 
 stockfish*/
 *.csv
+.env
