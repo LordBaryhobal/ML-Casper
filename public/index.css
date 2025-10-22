@@ -8,6 +8,7 @@ body {
     grid-template-areas:
         "header header header"
         ". main side"
+        "footer footer footer"
 }
 
 header {
@@ -20,6 +21,10 @@ main {
 
 aside {
     grid-area: side;
+}
+
+footer {
+    grid-area: footer;
 }
 
 #chessboard {
@@ -142,4 +147,11 @@ aside {
     .result {
         font-weight: bold;
     }
+}
+
+.elo-estimation {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2em;
+    align-items: center;
 }

@@ -66,6 +66,7 @@ class Chessboard {
         this.promotionPopup = new Popup(document.getElementById("promotion-popup"))
         this.promotionMove = null
         this.listeners = {}
+        this.history = []
         this.init()
     }
 
@@ -125,6 +126,7 @@ class Chessboard {
      * @param {string} fen 
      */
     loadFEN(fen) {
+        this.history = []
         let [board, player, castles, enPassant, halfMoves, moves] = fen.split(" ")
         const state = make2DArray(8, 8, "")
         let x = 0
@@ -390,14 +392,25 @@ class Chessboard {
     }
 
     onMoved(algebraic, outcome) {
+        this.history.push(algebraic)
         if (outcome) {
             this.onGameOver(outcome)
             return
         }
 
         if (this.currentPlayer !== this.pov) {
+            this.evaluate()
             this.predict()
         }
+    }
+
+    evaluate() {
+        apiPost("/evaluate/", {
+            "player": this.currentPlayer,
+            "moves": this.history
+        }).then(res => {
+            document.getElementById("estimated-elo").innerText = res.elo
+        })
     }
 
     predict() {
