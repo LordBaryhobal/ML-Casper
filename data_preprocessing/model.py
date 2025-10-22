@@ -33,7 +33,7 @@ loss_fit = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
 print("Loading dataframe")
-df: pl.DataFrame = pl.read_parquet("per_move_sampled.parquet")
+df: pl.DataFrame = pl.read_parquet("output/per_move_sampled.parquet")
 unique_ids = df.select("id").unique().to_series().to_list()
 
 rng = np.random.default_rng(seed=42)
