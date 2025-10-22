@@ -33,32 +33,29 @@ loss_fit = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
 print("Loading dataframe")
-df: pl.DataFrame = pl.read_parquet("per_move2.parquet").sample(fraction=0.1, shuffle=True)
+df: pl.DataFrame = pl.read_parquet("per_move_sampled.parquet")
+unique_ids = df.select("id").unique().to_series().to_list()
 
-print("Splitting rows")
-def extract_piece(colname: str, col: int) -> pl.Expr:
-    return (pl.col(colname) // (2 ** (col * 4))) & 0xF
+rng = np.random.default_rng(seed=42)
+rng.shuffle(unique_ids)
 
-df = df.with_columns(
-    *[
-        extract_piece(f"state{i}", j).cast(pl.Float32).alias(f"tile{i}{j}")
-        for i in range(8)
-        for j in range(8)
-    ]
-).select(
-    pl.exclude(*[f"state{i}" for i in range(8)]),
-)
+split_idx = int(len(unique_ids) * 0.7)
+train_ids = set(unique_ids[:split_idx])
+test_ids  = set(unique_ids[split_idx:])
 
-train_size: int = int(0.7 * len(df))
+print(f"Total games: {len(unique_ids)} → train={len(train_ids)}, test={len(test_ids)}")
+
+df_train = df.filter(pl.col("id").is_in(train_ids))
+df_test  = df.filter(pl.col("id").is_in(test_ids))
+
+print(f"Train rows: {len(df_train)}, Test rows: {len(df_test)}")
 
 print("Splitting features and labels")
-X = df.select("move_idx", *[f"tile{i}{j}" for i in range(8) for j in range(8)]).to_torch(dtype=pl.Float32)
-y = df.select("white_elo", "black_elo").to_torch(dtype=pl.Float32)
+X_train = df_train.select("move_idx", *[f"tile{i}{j}" for i in range(8) for j in range(8)]).to_torch(dtype=pl.Float32)
+y_train = df_train.select("white_elo", "black_elo").to_torch(dtype=pl.Float32)
 
-print("Splitting training and test sets")
-#X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.7)
-X_train, X_test = X[:train_size].to(device), X[train_size:].to(device)
-y_train, y_test = y[:train_size].to(device), y[train_size:].to(device)
+X_test = df_test.select("move_idx", *[f"tile{i}{j}" for i in range(8) for j in range(8)]).to_torch(dtype=pl.Float32)
+y_test = df_test.select("white_elo", "black_elo").to_torch(dtype=pl.Float32)
 
 n_epochs = 100
 batch_size = 10000
