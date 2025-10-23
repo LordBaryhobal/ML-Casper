@@ -126,7 +126,6 @@ class Chessboard {
      * @param {string} fen 
      */
     loadFEN(fen) {
-        this.history = []
         let [board, player, castles, enPassant, halfMoves, moves] = fen.split(" ")
         const state = make2DArray(8, 8, "")
         let x = 0
@@ -467,6 +466,7 @@ class Game {
             playAs = Math.random() < 0.5 ? "white" : "black"
         }
         this.board.setPOV(playAs)
+        this.board.history = [];
         this.board.loadFEN(Chessboard.DEFAULT_STATE)
     }
 

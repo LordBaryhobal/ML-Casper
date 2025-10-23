@@ -1,15 +1,17 @@
 from pathlib import Path
 
+import json
 import polars as pl
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRegressor
 
 DIR = Path(__file__).parent
-IN_PATH = DIR / "evaluated2.parquet"
+IN_PATH = DIR / "evaluated3.parquet"
 
 print("Loading data")
 df: pl.LazyFrame = pl.scan_parquet(IN_PATH)
+df = df.filter(pl.col("move_idx") > 5)
 
 print("Labeling players")
 whites: pl.LazyFrame = df.filter(pl.col("move_idx").mod(2) == 0).rename({"white_elo": "elo"}).drop("black_elo").with_columns(player=pl.lit("white"))
@@ -58,3 +60,23 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 mae = mean_absolute_error(y_test, y_pred)
 print(f"Mean Absolute Error: {mae:.1f} ELO points")
+
+ARTIFACTS = Path("models")
+ARTIFACTS.mkdir(exist_ok=True)
+
+model_path = ARTIFACTS / "elo_xgb.json"
+meta_path = ARTIFACTS / "elo_xgb.meta.json"
+
+model.save_model(model_path.as_posix())
+
+FEATURES = ['move_count', 'mean_cp_loss', 'mean_best_diff', 'std_cp_loss']
+meta = {
+    "features": FEATURES,
+    "framework": "xgboost",
+    "model_type": "XGBRegressor",
+    "version": 1,
+}
+meta_path.write_text(json.dumps(meta, indent=2))
+
+print(f"Saved model -> {model_path}")
+print(f"Saved meta  -> {meta_path}")

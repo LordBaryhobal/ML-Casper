@@ -1,0 +1,11 @@
+{
+  "features": [
+    "move_count",
+    "mean_cp_loss",
+    "mean_best_diff",
+    "std_cp_loss"
+  ],
+  "framework": "xgboost",
+  "model_type": "XGBRegressor",
+  "version": 1
+}
