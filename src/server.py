@@ -7,12 +7,13 @@ import numpy as np
 import threading
 
 import chess
-from chess import Board, IllegalMoveError, Outcome
+from chess import Board, IllegalMoveError, Move, Outcome
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from src.style.model import StyleAnalyser
 from stockfish import Stockfish
 
 load_dotenv()
@@ -95,6 +96,8 @@ def predict_elo_from_features(move_count: int, mean_cp_loss: float, mean_best_di
     x = np.array([[feats[name] for name in MODEL_FEATURES]], dtype=np.float32)
     pred = MODEL.predict(x)[0]
     return float(pred)
+
+style_analyser: StyleAnalyser = StyleAnalyser()
 
 
 class MoveCheckData(BaseModel):
@@ -198,6 +201,24 @@ def predict_move(game_info: PredictData):
         "move": move,
         "fen": board.fen(),
         "outcome": GameOutcome.make(outcome) if outcome is not None else None
+    }
+
+
+@router.post("/analyse/")
+def analyse(game_info: EvaluationData):
+    moves: list[Move] = [
+        Move.from_uci(m)
+        for m in game_info.moves
+    ]
+    board: Board = Board()
+    san_moves: list[str] = []
+    for m in moves:
+        san_moves.append(board.san(m))
+        board.push(m)
+    game_data: tuple[str, str] = (" ".join(san_moves), game_info.player.upper())
+    style_probs: dict[str, float] = style_analyser.infer(game_data)
+    return {
+        "probabilities": style_probs
     }
 
 

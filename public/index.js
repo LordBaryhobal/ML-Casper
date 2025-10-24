@@ -404,11 +404,16 @@ class Chessboard {
     }
 
     evaluate() {
-        apiPost("/evaluate/", {
-            "player": this.currentPlayer,
+        const data = {
+            "player": this.pov,
             "moves": this.history
-        }).then(res => {
+        }
+        apiPost("/evaluate/", data).then(res => {
             document.getElementById("estimated-elo").innerText = res.elo
+        })
+        
+        apiPost("/analyse/", data).then(res => {
+            this.setStyle(res)
         })
     }
 
@@ -429,6 +434,17 @@ class Chessboard {
 
     onGameOver(outcome) {
         this.emit(new GameOverEvent(outcome))
+    }
+
+    setStyle(probs) {
+        const table = document.getElementById("styles").querySelector(".table")
+        table.innerHTML = ""
+
+        Object.entries(probs.probabilities).sort((a, b) => b[1] - a[1]).forEach(([name, prob]) => {
+            const row = table.insertRow()
+            row.insertCell().innerText = name
+            row.insertCell().innerText = `${Math.round(prob * 10) / 10}%`
+        })
     }
 }
 
@@ -465,6 +481,7 @@ class Game {
         if (playAs === "random") {
             playAs = Math.random() < 0.5 ? "white" : "black"
         }
+        this.board.history = []
         this.board.setPOV(playAs)
         this.board.history = [];
         this.board.loadFEN(Chessboard.DEFAULT_STATE)

@@ -7,7 +7,7 @@ body {
     grid-template-rows: auto 1fr;
     grid-template-areas:
         "header header header"
-        ". main side"
+        "lside main rside"
         "footer footer footer"
 }
 
@@ -19,8 +19,12 @@ main {
     grid-area: main;
 }
 
-aside {
-    grid-area: side;
+aside.left {
+    grid-area: lside;
+}
+
+aside.right {
+    grid-area: rside;
 }
 
 footer {
