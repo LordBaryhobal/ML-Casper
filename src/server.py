@@ -1,6 +1,7 @@
 import os
 import random
 from typing import Optional
+import pandas as pd
 from xgboost import XGBRegressor
 import json
 import numpy as np
@@ -28,7 +29,9 @@ stockfish_path: str = os.environ["STOCKFISH_PATH"]
 print(f"Stockfish path: {stockfish_path}")
 
 sf_move = Stockfish(stockfish_path)
+sf_move.update_engine_parameters({"UCI_LimitStrength": "true", "Hash": 1024})
 sf_eval = Stockfish(stockfish_path)
+sf_eval.update_engine_parameters({"Hash": 1024})
 
 SF_MOVE_LOCK = threading.Lock()
 SF_EVAL_LOCK = threading.Lock()
@@ -54,48 +57,38 @@ def load_model():
 
 load_model()
 
-#TODO adapt
-def eval_cp(ev: dict) -> int:
-    if ev["type"] == "cp":
-        return int(ev["value"])
-    return 32000 if ev["value"] > 0 else -32000
-
-def cp_loss_series(moves_uci: list[str]) -> list[int]:
-    diffs = []
+def cp_loss_series(moves_uci: list[str]) -> list[dict]:
+    rows = []
     board = chess.Board()
-    for uci in moves_uci:
-        # --- NEW: on utilise sf_eval + lock
-        with SF_EVAL_LOCK:
-            sf_eval.set_fen_position(board.fen())
-            best = sf_eval.get_best_move()
+    with SF_EVAL_LOCK:
+        sf_eval.set_fen_position(board.fen())
+        current_eval: float = sf_eval.get_evaluation()["value"]
+        for i, uci in enumerate(moves_uci):
+            best: dict = sf_eval.get_top_moves(1)[0]
+            best_eval: float = best["Centipawn"]
 
-            if best:
-                sf_eval.set_fen_position(board.fen())
-                best_eval = sf_eval.get_evaluation()
-            else:
-                best_eval = {"type": "cp", "value": 0}
+            sf_eval.make_moves_from_current_position([uci])
+            new_eval: float = sf_eval.get_evaluation()["value"]
 
-        board.push_uci(uci)
+            cp_loss: float = new_eval - current_eval
+            current_eval = new_eval
+            if best["Mate"]:
+                continue
+            best_diff: float = best_eval - new_eval
+            
+            rows.append({
+                "move_idx": i,
+                "cp_loss": cp_loss,
+                "best_diff": best_diff
+            })
+    return rows
 
-        with SF_EVAL_LOCK:
-            sf_eval.set_fen_position(board.fen())
-            played_eval = sf_eval.get_evaluation()
-
-        diffs.append(abs(eval_cp(best_eval) - eval_cp(played_eval)))
-    return diffs
-
-def predict_elo_from_features(move_count: int, mean_cp_loss: float, mean_best_diff: float, std_cp_loss: float) -> float | None:
+def predict_elo_from_features(df: pd.DataFrame) -> np.float32:
     if MODEL is None:
-        return None
-    feats = {
-        "move_count": float(move_count),
-        "mean_cp_loss": float(mean_cp_loss),
-        "mean_best_diff": float(mean_best_diff),
-        "std_cp_loss": float(std_cp_loss),
-    }
-    x = np.array([[feats[name] for name in MODEL_FEATURES]], dtype=np.float32)
-    pred = MODEL.predict(x)[0]
-    return float(pred)
+        raise RuntimeError("Model not initialized")
+    X = df[["move_count", "mean_cp_loss", "mean_best_diff", "std_cp_loss"]]
+    preds = MODEL.predict(X.iloc[-1:])
+    return np.mean(preds)
 
 style_analyser: StyleAnalyser = StyleAnalyser()
 
@@ -148,44 +141,38 @@ def apply_move(move: MoveCheckData):
 # TODO check if mean all moves or just current player
 @router.post("/evaluate/")
 def evaluate(game_info: EvaluationData):
-    moves_uci = game_info.moves or []
-    move_count = len(moves_uci)
+    moves_uci: list[str] = game_info.moves or []
+    move_count: int = len(moves_uci)
 
-    losses = cp_loss_series(moves_uci) if move_count else []
+    df: pd.DataFrame = pd.DataFrame(cp_loss_series(moves_uci))
 
-    if losses:
-        mean_cp = float(np.mean(losses))
-        std_cp = float(np.std(losses)) if len(losses) > 1 else 0.0
+    df["mean_cp_loss"] = df["cp_loss"].expanding().mean().reset_index(drop=True)
+    df["mean_best_diff"] = df["best_diff"].expanding().mean().reset_index(drop=True)
+    df["std_cp_loss"] = df["cp_loss"].expanding().std().reset_index(drop=True)
+    df["move_count"] = df["move_idx"]
+
+    if game_info.player == "white":
+        mod = 0
     else:
-        mean_cp = 0.0
-        std_cp = 0.0
+        mod = 1
+    
+    df = df.iloc[mod::2]
 
-    mean_best_diff = mean_cp
+    # Drop rows with NaN (early moves with std undefined)
+    df = df.dropna(subset=["std_cp_loss"])
 
-    pred = predict_elo_from_features(
-        move_count=int(move_count),
-        mean_cp_loss=mean_cp,
-        mean_best_diff=mean_best_diff,
-        std_cp_loss=std_cp
-    )
+    pred = predict_elo_from_features(df)
 
     if pred is None or not np.isfinite(pred):
+        print("Could not predict ELO, returning random value")
         pred = float(random.randint(700, 2000))
 
     return {
-        "elo": round(float(pred)),
-        "evaluations": losses,
-        "features": {
-            "move_count": move_count,
-            "mean_cp_loss": mean_cp,
-            "mean_best_diff": mean_best_diff,
-            "std_cp_loss": std_cp
-        }
+        "elo": round(float(pred))
     }
 
 @router.post("/predict/")
 def predict_move(game_info: PredictData):
-    # --- NEW: use sf_move + lock
     with SF_MOVE_LOCK:
         sf_move.set_fen_position(game_info.fen)
         sf_move.set_elo_rating(game_info.elo)

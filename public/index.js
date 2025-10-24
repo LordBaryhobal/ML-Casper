@@ -67,6 +67,7 @@ class Chessboard {
         this.promotionMove = null
         this.listeners = {}
         this.history = []
+        this.estimatedElo = 850
         this.init()
     }
 
@@ -420,7 +421,7 @@ class Chessboard {
     predict() {
         apiPost("/predict/", {
             "fen": this.getFEN(),
-            "elo": 850
+            "elo": this.estimatedElo
         }).then(res => {
             if (res.error) {
                 window.alert(res.error)
@@ -484,6 +485,10 @@ class Game {
         this.board.history = []
         this.board.setPOV(playAs)
         this.board.loadFEN(Chessboard.DEFAULT_STATE)
+
+        if (playAs === "black") {
+            this.board.predict()
+        }
     }
 
     onGameOver(event) {
