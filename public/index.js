@@ -483,7 +483,6 @@ class Game {
         }
         this.board.history = []
         this.board.setPOV(playAs)
-        this.board.history = [];
         this.board.loadFEN(Chessboard.DEFAULT_STATE)
     }
 
